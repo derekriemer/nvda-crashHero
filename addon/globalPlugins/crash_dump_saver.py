@@ -1,3 +1,7 @@
+#crash_dump_saver: Main plugin code.
+#copyright Derek Riemer 2016.
+#This code is GPL. See NVDA's license.
+#All of NVDA's license and copying conditions apply here, including the waranty disclosure.
 import datetime
 import re
 import os
