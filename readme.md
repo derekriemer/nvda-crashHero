@@ -1,6 +1,6 @@
 
 # How to use:
-From the crash saver preferences, select "Save Directory". Click browse. Find the directory to house your crashes. Note that a crashes directory will be created here.
+in the crash saver preferences,   there are two options.  There is an edit field with your current crashes directory in it. By activating the "pick  a directory" button, you can choose   where to house your crashes. Note that a crashes directory will be created under the directory you choose.
 Now, click okay.
 This is all! Next time NVDA crashes, A dialog will appear when it reboots itself. This dialog asks you what you were doing when NVDA crashed. Type what you were doing in a sentence or two. Good things to include here are:
 

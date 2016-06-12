@@ -28,7 +28,7 @@ class CrashSettings(gui.SettingsDialog):
 		sizer = wx.BoxSizer(wx.HORIZONTAL)
 		#Translators: Label that appears next to the current directory display.
 		sizer.Add(wx.StaticText(self, wx.ID_ANY, label = _("Current Directory")))
-		self.edit = item = wx.TextCtrl(self, style =  wx.TE_READONLY | wx.TE_MULTILINE, size=(500, 100))
+		self.edit = item = wx.TextCtrl(self, size=(500, 100))
 		item.SetValue(self.folderName)
 		sizer.Add(item)
 		settingsSizer.Add(sizer)
@@ -93,7 +93,11 @@ def saveCrash():
 	crashDir = os.path.join(crashDir, folderName)
 	os.mkdir(crashDir)
 	temp = tempfile.gettempdir()
-	shutil.move(os.path.join(temp, "nvda_crash.dmp"), crashDir) #No need to check existance. See above.
+	try:
+		shutil.move(os.path.join(temp, "nvda_crash.dmp"), crashDir) #No need to check existance. See above.
+	except Exception as e:
+		gui.messageBox("check the log please")
+		raise e
 	with open(os.path.join(crashDir, "message.txt"), "w") as messageFile:
 		messageFile.write(message)
 	gui.messageBox(crashDir, "the NVDA crash is in this directory.")
