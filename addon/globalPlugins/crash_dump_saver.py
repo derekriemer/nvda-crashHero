@@ -14,10 +14,7 @@ import config
 import wx
 
 def confDialog(evt):
-	cs = CrashSettings(gui.mainFrame)
-	gui.mainFrame.prePopup()
-	cs.Show()
-	gui.mainFrame.postPopup()
+	gui.mainFrame._popupSettingsDialog(CrashSettings)
 
 class CrashSettings(gui.SettingsDialog):
 	#Translators: Title of the settings dialog.
@@ -49,8 +46,12 @@ class CrashSettings(gui.SettingsDialog):
 		self.edit.SetFocus()
 	
 	def onOk(self, evt):
-		config.conf["crashSaver"]["dir"] = self.edit.Value
-		self.Destroy()
+		if os.path.exists(self.edit.Value):
+			config.conf["crashSaver"]["dir"] = self.edit.Value
+		else:
+			gui.messageBox(_("That folder doesn't exist. Enter a valid folder name."))
+			return
+		super(CrashSettings, self).onOk(evt)
 
 def crashDialog():
 	#Translators: Title of a dialog shown at startup of NVDA.
@@ -114,5 +115,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			wx.CallAfter(saveCrash) #call after NVDA is ready to pop up gui stuff.
 		prefsMenu = gui.mainFrame.sysTrayIcon.preferencesMenu
 		#Translators: Message for setting the Crash saver preferences.
-		item = prefsMenu.Append(wx.ID_ANY, _("Crash Saver Settings ..."))
+		self.item = item = prefsMenu.Append(wx.ID_ANY, _("Crash Saver Settings ..."))
 		prefsMenu.Parent.Bind(wx.EVT_MENU, confDialog, item)
+	
+	def terminate(self):
+		try:
+			gui.mainFrame.sysTrayIcon.preferencesMenu.RemoveItem(self.item)
+		except wx.PyDeadObjectError:
+			pass
