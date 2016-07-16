@@ -12,7 +12,36 @@ import api
 import gui
 import config
 import wx
+import sys
+import versionInfo
 
+class VersionInfo(object):
+	""" Storage for versioning information for NVDA."""
+	
+	def __init__(self):
+		"""Constructs version info from NVDA and windows."""
+		self.NVDAVersion = versionInfo.version
+		self.windowsVersionTuple = sys.getwindowsversion()
+		self.testVersion = versionInfo.isTestVersion
+	
+	def write(self, fileObj):
+		"""Writes version information to the file fileObj. This is not thread safe. as it calls write on the file object."""
+		winVerStr = "[Windows version]:\n"
+		winVer = [
+			("major", self.windowsVersionTuple.major),
+			("minor", self.windowsVersionTuple.minor),
+			("build", self.windowsVersionTuple.build),
+			("platform", self.windowsVersionTuple.platform),
+			("service Pack", self.windowsVersionTuple.service_pack),
+		]
+		for i in winVer:
+			winVerStr += "\t{0}:\t{1}\n".format(*i)
+		fileObj.write(winVerStr)
+		fileObj.write("[NVDA version]\n")
+		fileObj.write("\tVersion:\t{0}\n".format(self.NVDAVersion))
+		fileObj.write("\tTest Version:\t{0}\n".format(self.testVersion))
+
+	
 def confDialog(evt):
 	gui.mainFrame._popupSettingsDialog(CrashSettings)
 
@@ -79,6 +108,7 @@ def crashDialog():
 def saveCrash():
 	message = crashDialog()
 	timestamp = datetime.datetime.now().strftime("%a %d %B %Y %H-%M-%S") #colons aren't allowed in file names.
+	userFriendlyTimestamp = datetime.datetime.now().strftime("%a %d %B %Y %H:%M:%S") #colons aren't allowed in file names.
 	msg = message.split(" ", 5)
 	#Some characters like : aren't file safe. Just remove them.
 	mst = (msg[:-1] if len(msg) > 5 else msg) #It's a list and we need a string.
@@ -100,6 +130,9 @@ def saveCrash():
 		gui.messageBox("check the log please")
 		raise e
 	with open(os.path.join(crashDir, "message.txt"), "w") as messageFile:
+		VersionInfo().write(messageFile)
+		messageFile.write("The crash occured at {0}\n".format(userFriendlyTimestamp))
+		messageFile.write("User supplied message:\n\n")
 		messageFile.write(message)
 	gui.messageBox(crashDir, "the NVDA crash is in this directory.")
 

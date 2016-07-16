@@ -19,7 +19,7 @@ addon_info = {
 	# Translators: Long description to be shown for this add-on on add-on information from add-ons manager
 	"addon_description" : _("""Saves crashe files from NVDA into one easy to access location, where all crashes are timestamped and archived."""),
 	# version
-	"addon_version" : "1.0.0-dev",
+	"addon_version" : "2.0.0-dev",
 	# Author(s)
 	"addon_author" : u"Derek Riemer <driemer.riemer@gmail.com>",
 	# URL for the add-on documentation support
