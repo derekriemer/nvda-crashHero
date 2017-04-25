@@ -11,7 +11,7 @@ This is all! Next time NVDA crashes, A dialog will appear when it reboots itself
 * Any strange behavior NVDA exhibited before the crash.
 
 In your chosen directory, you'll see a crashes directory. This directory contains timestamped folders that house all of your crashes. These folders also contain the first five words of the crash message you provided with any symbols not safe for folder names removed.
-These crash directorys, as their called, contain 2 things.
+These crash directories, as they're called, contain 2 things.
 
 * message.txt: The message you typed in the dialog.
 * nvda_crash.dmp: The crash dump file NVDA generates when it dies.
