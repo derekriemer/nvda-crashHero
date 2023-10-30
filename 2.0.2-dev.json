@@ -1,0 +1,29 @@
+{
+	"addonId": "crashHero",
+	"displayName": "Crash Hero",
+	"URL": "",
+	"description": "Saves crashe files from NVDA into one easy to access location, where all crashes are timestamped and archived.",
+	"sha256": "db8e2a4015b663873c38074c3e6fa8af0238b888f522c2b83fbb646a40834b94",
+	"homepage": null,
+	"addonVersionName": "2.0.2-dev",
+	"addonVersionNumber": {
+		"major": 0,
+		"minor": 0,
+		"patch": 0
+	},
+	"minNVDAVersion": {
+		"major": 2018,
+		"minor": 3,
+		"patch": 0
+	},
+	"lastTestedVersion": {
+		"major": 2024,
+		"minor": 1,
+		"patch": 0
+	},
+	"channel": "dev",
+	"publisher": "",
+	"sourceURL": null,
+	"license": null,
+	"licenseURL": null
+}

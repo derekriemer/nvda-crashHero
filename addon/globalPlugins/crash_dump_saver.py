@@ -1,5 +1,5 @@
 #crash_dump_saver: Main plugin code.
-#copyright Derek Riemer 2016.
+#copyright Derek Riemer 2016-2023.
 #This code is GPL. See NVDA's license.
 #All of NVDA's license and copying conditions apply here, including the waranty disclosure.
 import datetime
@@ -9,78 +9,33 @@ import shutil
 import tempfile
 import globalPluginHandler
 import api
+from scriptHandler import script
 import gui
 import config
 import wx
 import sys
-import versionInfo
+from gui import guiHelper
 
-class VersionInfo(object):
-	""" Storage for versioning information for NVDA."""
-	
-	def __init__(self):
-		"""Constructs version info from NVDA and windows."""
-		self.NVDAVersion = versionInfo.version
-		self.windowsVersionTuple = sys.getwindowsversion()
-		self.testVersion = versionInfo.isTestVersion
-	
-	def write(self, fileObj):
-		"""Writes version information to the file fileObj. This is not thread safe. as it calls write on the file object."""
-		winVerStr = "[Windows version]:\n"
-		winVer = [
-			("major", self.windowsVersionTuple.major),
-			("minor", self.windowsVersionTuple.minor),
-			("build", self.windowsVersionTuple.build),
-			("platform", self.windowsVersionTuple.platform),
-			("service Pack", self.windowsVersionTuple.service_pack),
-		]
-		for i in winVer:
-			winVerStr += "\t{0}:\t{1}\n".format(*i)
-		fileObj.write(winVerStr)
-		fileObj.write("[NVDA version]\n")
-		fileObj.write("\tVersion:\t{0}\n".format(self.NVDAVersion))
-		fileObj.write("\tTest Version:\t{0}\n".format(self.testVersion))
-
-	
 def confDialog(evt):
 	gui.mainFrame._popupSettingsDialog(CrashSettings)
 
-class CrashSettings(gui.SettingsDialog):
+class CrashSettingsPanel(gui.SettingsPanel):
 	#Translators: Title of the settings dialog.
-	title = _("Crash settings.")
+	title = _("Crash Hero")
 
 	def makeSettings(self, settingsSizer):
-		self.folderName = config.conf["crashSaver"]["dir"]
-		sizer = wx.BoxSizer(wx.HORIZONTAL)
-		#Translators: Label that appears next to the current directory display.
-		sizer.Add(wx.StaticText(self, wx.ID_ANY, label = _("Current Directory")))
-		self.edit = item = wx.TextCtrl(self, size=(500, 100))
-		item.SetValue(self.folderName)
-		sizer.Add(item)
-		settingsSizer.Add(sizer)
-		#Translators: A button that brings up a dialog to pick a folder.
-		dirButton = wx.Button(self, wx.ID_ANY, label=_("Pick a Folder"))
-		dirButton.Bind(wx.EVT_BUTTON, self.onDirButtonAction)
-		settingsSizer.Add(dirButton)
-	
-	def onDirButtonAction(self, evt):
-		self.Hide()
-		dirDialog = wx.DirDialog(self, style=wx.DD_DEFAULT_STYLE|wx.DD_DIR_MUST_EXIST, defaultPath = self.folderName)
-		dirDialog.Center()
-		result = dirDialog.ShowModal()
-		self.edit.Value = dirDialog.Path
-		self.Show()
-	
-	def postInit(self):
-		self.edit.SetFocus()
-	
-	def onOk(self, evt):
-		if os.path.exists(self.edit.Value):
-			config.conf["crashSaver"]["dir"] = self.edit.Value
+		self.folderName = config.conf["crashSaver"]["directory"]
+		self.crashDirectory = guiHelper.PathSelectionHelper(self, "Browse", "Choose your crash selection Directory")
+		self.crashDirectory.pathControl.Value = self.folderName
+
+	def onSave(self):
+		curProfile = config.conf.profiles[-1].name
+		config.conf.manualActivateProfile(None)
+		if os.path.exists(self.crashDirectory.pathControl.Value):
+			config.conf["crashSaver"]["directory"] = self.crashDirectory.pathControl.Value
 		else:
 			gui.messageBox(_("That folder doesn't exist. Enter a valid folder name."))
-			return
-		super(CrashSettings, self).onOk(evt)
+		config.conf.manualActivateProfile(curProfile)
 
 def crashDialog():
 	#Translators: Title of a dialog shown at startup of NVDA.
@@ -108,14 +63,13 @@ def crashDialog():
 def saveCrash():
 	message = crashDialog()
 	timestamp = datetime.datetime.now().strftime("%a %d %B %Y %H-%M-%S") #colons aren't allowed in file names.
-	userFriendlyTimestamp = datetime.datetime.now().strftime("%a %d %B %Y %H:%M:%S") #colons aren't allowed in file names.
+	userFriendlyTimestamp = datetime.datetime.now().strftime("%a %d %B %Y %H:%M:%S")
 	msg = message.split(" ", 5)
-	#Some characters like : aren't file safe. Just remove them.
-	mst = (msg[:-1] if len(msg) > 5 else msg) #It's a list and we need a string.
 	msg = " ".join(msg)
+	#sanatize files.
 	msg = re.sub(r"[^a-zA-Z0-9_ -]", "", msg)
 	folderName = timestamp + " "+msg
-	userDir = config.conf["crashSaver"]["dir"]
+	userDir = config.conf["crashSaver"]["directory"]
 	
 	#translators: the plural word for crash in your language.
 	crashDir = os.path.join(userDir, _("crashes"))
@@ -126,11 +80,11 @@ def saveCrash():
 	temp = tempfile.gettempdir()
 	try:
 		shutil.move(os.path.join(temp, "nvda_crash.dmp"), crashDir) #No need to check existance. See above.
+		shutil.move(os.path.join(temp, "nvda-old.log"), crashDir) #No need to check existance. See above.
 	except Exception as e:
 		gui.messageBox("check the log please")
 		raise e
 	with open(os.path.join(crashDir, "message.txt"), "w") as messageFile:
-		VersionInfo().write(messageFile)
 		messageFile.write("The crash occured at {0}\n".format(userFriendlyTimestamp))
 		messageFile.write("User supplied message:\n\n")
 		messageFile.write(message)
@@ -141,18 +95,27 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def __init__(self):
 		super(globalPluginHandler.GlobalPlugin, self).__init__()
 		config.conf.spec["crashSaver"] = {
-			"dir" : "string(default={})".format(os.path.expanduser("~"))
+			"directory" : "string(default=\"{}\")".format(os.path.expanduser("~"))
 		}
+		config.conf.BASE_ONLY_SECTIONS.add("crashSaver")
 		temp = tempfile.gettempdir()
 		if os.path.exists(os.path.join(temp, "nvda_crash.dmp")):
 			wx.CallAfter(saveCrash) #call after NVDA is ready to pop up gui stuff.
-		prefsMenu = gui.mainFrame.sysTrayIcon.preferencesMenu
-		#Translators: Message for setting the Crash saver preferences.
-		self.item = item = prefsMenu.Append(wx.ID_ANY, _("Crash Saver Settings ..."))
-		prefsMenu.Parent.Bind(wx.EVT_MENU, confDialog, item)
-	
+		gui.settingsDialogs.NVDASettingsDialog.categoryClasses.append(CrashSettingsPanel)
+
 	def terminate(self):
 		try:
-			gui.mainFrame.sysTrayIcon.preferencesMenu.RemoveItem(self.item)
-		except wx.PyDeadObjectError:
+			gui.settingsDialogs.NVDASettingsDialog.categoryClasses.remove(CrashSettingsPanel)
+		except IndexError:
 			pass
+
+	# Intentionally untranslated. We don't need to care about translation this developer only feature.
+	@script(description="fakes a crash of NVDA on purpose", category="Crash Hero")
+	def script_crash(self, gesture):
+		# Does not actually crash NVDA. I'm not publishing code that actually does that.
+		d=open(os.path.join(tempfile.gettempdir(), "nvda_crash.dmp"), "w")
+		d.write("This is a test file.")
+		d.close()
+		#Import late to prevent perf hit in 99% of cases.
+		import core
+		core.restart()
