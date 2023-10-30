@@ -19,7 +19,7 @@ from gui import guiHelper
 def confDialog(evt):
 	gui.mainFrame._popupSettingsDialog(CrashSettings)
 
-class CrashSettingsPanel(gui.SettingsPanel):
+class CrashSettingsPanel(gui.settingsDialogs.SettingsPanel):
 	#Translators: Title of the settings dialog.
 	title = _("Crash Hero")
 
