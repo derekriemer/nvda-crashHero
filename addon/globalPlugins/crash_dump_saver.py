@@ -97,7 +97,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		config.conf.spec["crashSaver"] = {
 			"directory" : "string(default=\"{}\")".format(os.path.expanduser("~"))
 		}
-		config.conf.BASE_ONLY_SECTIONS.add("crashSaver")
+#		config.conf.BASE_ONLY_SECTIONS.add("crashSaver")
 		temp = tempfile.gettempdir()
 		if os.path.exists(os.path.join(temp, "nvda_crash.dmp")):
 			wx.CallAfter(saveCrash) #call after NVDA is ready to pop up gui stuff.
