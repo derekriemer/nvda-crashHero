@@ -1,5 +1,5 @@
 #crash_dump_saver: Main plugin code.
-#copyright Derek Riemer 2016-2023.
+#copyright Derek Riemer 2016-2025.
 #This code is GPL. See NVDA's license.
 #All of NVDA's license and copying conditions apply here, including the waranty disclosure.
 import datetime
@@ -7,13 +7,15 @@ import re
 import os
 import shutil
 import tempfile
+import sys
+
 import globalPluginHandler
 import api
 from scriptHandler import script
 import gui
+from gui.message import MessageDialog
 import config
 import wx
-import sys
 from gui import guiHelper
 
 def confDialog(evt):
@@ -34,7 +36,11 @@ class CrashSettingsPanel(gui.settingsDialogs.SettingsPanel):
 		if os.path.exists(self.crashDirectory.pathControl.Value):
 			config.conf["crashSaver"]["directory"] = self.crashDirectory.pathControl.Value
 		else:
-			gui.messageBox(_("That folder doesn't exist. Enter a valid folder name."))
+			MessageDialog(None,
+				# Translators: message in a modal warningn the user that the directory they chose does not exist.
+				_("Folder doesn't exist. Enter a valid folder name."),
+				# Translators: Title of a modal warning the user that the directory they chose does not exist.
+				_("Invalid Directory")).ShowModal()
 		config.conf.manualActivateProfile(curProfile)
 
 def crashDialog():
@@ -70,7 +76,7 @@ def saveCrash():
 	msg = re.sub(r"[^a-zA-Z0-9_ -]", "", msg)
 	folderName = timestamp + " "+msg
 	userDir = config.conf["crashSaver"]["directory"]
-	
+
 	#translators: the plural word for crash in your language.
 	crashDir = os.path.join(userDir, _("crashes"))
 	if not os.path.exists(crashDir):
@@ -82,13 +88,13 @@ def saveCrash():
 		shutil.move(os.path.join(temp, "nvda_crash.dmp"), crashDir) #No need to check existance. See above.
 		shutil.move(os.path.join(temp, "nvda-old.log"), crashDir) #No need to check existance. See above.
 	except Exception as e:
-		gui.messageBox("check the log please")
+		gui.guiHelper.wxCallOnMain(MessageDialog(None, "check the log please").Show)
 		raise e
 	with open(os.path.join(crashDir, "message.txt"), "w") as messageFile:
 		messageFile.write("The crash occured at {0}\n".format(userFriendlyTimestamp))
 		messageFile.write("User supplied message:\n\n")
 		messageFile.write(message)
-	gui.messageBox(crashDir, "the NVDA crash is in this directory.")
+	gui.guiHelper.wxCallOnMain(MessageDialog(None, "the NVDA crash is in this directory.", crashDir).Show)
 
 
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
@@ -97,7 +103,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		config.conf.spec["crashSaver"] = {
 			"directory" : "string(default=\"{}\")".format(os.path.expanduser("~"))
 		}
-#		config.conf.BASE_ONLY_SECTIONS.add("crashSaver")
+		config.conf.BASE_ONLY_SECTIONS.add("crashSaver")
 		temp = tempfile.gettempdir()
 		if os.path.exists(os.path.join(temp, "nvda_crash.dmp")):
 			wx.CallAfter(saveCrash) #call after NVDA is ready to pop up gui stuff.
